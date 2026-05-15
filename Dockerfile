@@ -5,6 +5,7 @@ ARG HERMES_GIT_REF=main
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     git \
   && rm -rf /var/lib/apt/lists/*
 
@@ -15,7 +16,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir -e "/opt/hermes-agent[messaging,cron,cli,pty]"
+RUN pip install --no-cache-dir websockets -e "/opt/hermes-agent[messaging,cron,cli,pty]"
 
 
 FROM python:3.11-slim
@@ -23,6 +24,11 @@ FROM python:3.11-slim
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
+    git \
+    gh \
+    nodejs \
+    npm \
     tini \
   && rm -rf /var/lib/apt/lists/*
 
