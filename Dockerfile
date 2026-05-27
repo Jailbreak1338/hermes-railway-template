@@ -11,7 +11,11 @@ RUN apt-get update \
 
 WORKDIR /opt
 RUN test -n "${HERMES_GIT_REF}" \
-  && git clone --depth 1 --branch "${HERMES_GIT_REF}" --recurse-submodules https://github.com/NousResearch/hermes-agent.git
+  && git init /opt/hermes-agent \
+  && git -C /opt/hermes-agent remote add origin https://github.com/NousResearch/hermes-agent.git \
+  && git -C /opt/hermes-agent fetch --depth 1 origin "${HERMES_GIT_REF}" \
+  && git -C /opt/hermes-agent checkout --detach FETCH_HEAD \
+  && git -C /opt/hermes-agent submodule update --init --recursive --depth 1
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
