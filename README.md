@@ -40,6 +40,7 @@ Hermes terminal sessions default to `/data/workspace` via `${HERMES_HOME}/config
 This template defaults to Telegram + OpenRouter. These are the default variables to fill when deploying:
 
 ```env
+HERMES_GIT_REF=""
 OPENROUTER_API_KEY=""
 TELEGRAM_BOT_TOKEN=""
 TELEGRAM_ALLOWED_USERS=""
@@ -106,6 +107,20 @@ Helpful first checks:
 - Confirm volume mount exists at `/data`.
 - Confirm your provider variables are set and valid.
 
+## Updating on Railway
+
+Do not run `hermes update` inside a Railway deployment.
+
+- `hermes update` mutates the live container and can leave persisted `/data/.hermes/config.yaml` ahead of the image that Railway boots on the next deploy.
+- On Railway, update Hermes by changing `HERMES_GIT_REF` in service Variables to a pinned tag or commit, then redeploy.
+- Railway exposes service variables at build time, and this template uses `ARG HERMES_GIT_REF` in the Dockerfile, so the build is pinned from that variable.
+
+Recommended flow:
+
+1. Set `HERMES_GIT_REF` to a specific upstream tag or commit SHA.
+2. Deploy or redeploy the service.
+3. If upstream introduced new config options, run `hermes config migrate` over Railway SSH after the redeploy.
+
 ## Running Hermes commands manually
 
 If you want to run `hermes ...` commands manually inside the deployed service (for example `hermes config`, `hermes model`, or `hermes pairing list`), use [Railway SSH](https://docs.railway.com/cli/ssh) to connect to the running container.
@@ -138,16 +153,23 @@ Entrypoint (`scripts/entrypoint.sh`) does the following:
 
 ## Build pinning
 
-Docker build arg:
+This template requires `HERMES_GIT_REF` to be set explicitly.
 
-- `HERMES_GIT_REF` (default: `main`)
+Railway service variables are available at build time, and the Dockerfile reads:
 
-Override in Railway if you want to pin a tag or commit.
+- `ARG HERMES_GIT_REF`
+
+Set `HERMES_GIT_REF` in Railway Variables to a pinned upstream tag or commit SHA.
+
+Examples:
+
+- `HERMES_GIT_REF=v2026.5.16`
+- `HERMES_GIT_REF=4f3c2b1`
 
 ## Local smoke test
 
 ```bash
-docker build -t hermes-railway-template .
+docker build --build-arg HERMES_GIT_REF=v2026.5.16 -t hermes-railway-template .
 
 docker run --rm \
   -e OPENROUTER_API_KEY=sk-or-xxx \

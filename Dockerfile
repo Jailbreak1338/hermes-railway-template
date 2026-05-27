@@ -1,6 +1,6 @@
 FROM python:3.11-slim AS builder
 
-ARG HERMES_GIT_REF=main
+ARG HERMES_GIT_REF
 
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -10,7 +10,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt
-RUN git clone --depth 1 --branch "${HERMES_GIT_REF}" --recurse-submodules https://github.com/NousResearch/hermes-agent.git
+RUN test -n "${HERMES_GIT_REF}" \
+  && git clone --depth 1 --branch "${HERMES_GIT_REF}" --recurse-submodules https://github.com/NousResearch/hermes-agent.git
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
