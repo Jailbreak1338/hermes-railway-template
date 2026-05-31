@@ -72,6 +72,13 @@ require_writable_dir() {
   [[ -w "$path" ]] || fail "${path} is not writable by $(id -un)."
 }
 
+if [[ "$(id -u)" -eq 0 && "${HERMES_ALREADY_DROPPED:-}" != "1" ]]; then
+  mkdir -p "${HERMES_HOME:-/data/.hermes}" "${MESSAGING_CWD:-/data/workspace}"
+  chown -R hermes:hermes /data
+  export HERMES_ALREADY_DROPPED=1
+  exec gosu hermes "$0"
+fi
+
 require_one_provider
 require_one_messaging_platform
 require_allowlist_or_explicit_open_access

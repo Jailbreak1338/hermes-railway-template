@@ -36,6 +36,7 @@ RUN apt-get update \
     curl \
     fonts-liberation \
     git \
+    gosu \
     gh \
     nodejs \
     npm \
@@ -61,8 +62,6 @@ RUN addgroup --system --gid 10001 hermes \
   && mkdir -p /data /data/workspace /ms-playwright \
   && chown -R hermes:hermes /app /data /ms-playwright \
   && chmod +x /app/scripts/entrypoint.sh /app/scripts/entrypoint_check.sh
-
-USER hermes
 
 ENTRYPOINT ["tini", "--"]
 CMD ["/app/scripts/entrypoint_check.sh"]
