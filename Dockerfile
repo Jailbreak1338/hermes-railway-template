@@ -26,16 +26,24 @@ RUN pip install --no-cache-dir websockets -e "/opt/hermes-agent[messaging,cron,c
 
 FROM python:3.11-slim
 
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
+    chromium \
     curl \
+    fonts-liberation \
     git \
     gh \
     nodejs \
     npm \
     tini \
   && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g playwright \
+  && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 playwright install chromium
 
 ENV PATH="/opt/venv/bin:${PATH}" \
   PYTHONUNBUFFERED=1 \
@@ -47,7 +55,14 @@ COPY --from=builder /opt/hermes-agent /opt/hermes-agent
 
 WORKDIR /app
 COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
-RUN chmod +x /app/scripts/entrypoint.sh
+COPY scripts/entrypoint_check.sh /app/scripts/entrypoint_check.sh
+RUN addgroup --system --gid 10001 hermes \
+  && adduser --system --uid 10001 --ingroup hermes --home /data hermes \
+  && mkdir -p /data /data/workspace /ms-playwright \
+  && chown -R hermes:hermes /app /data /ms-playwright \
+  && chmod +x /app/scripts/entrypoint.sh /app/scripts/entrypoint_check.sh
+
+USER hermes
 
 ENTRYPOINT ["tini", "--"]
-CMD ["/app/scripts/entrypoint.sh"]
+CMD ["/app/scripts/entrypoint_check.sh"]
