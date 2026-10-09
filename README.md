@@ -65,11 +65,12 @@ You must set:
   - Discord: `DISCORD_BOT_TOKEN`
   - Slack: `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`
 
-Strongly recommended allowlists:
+At least one allowlist (the container refuses to start without one):
 
 - `TELEGRAM_ALLOWED_USERS`
 - `DISCORD_ALLOWED_USERS`
 - `SLACK_ALLOWED_USERS`
+- `WHATSAPP_ALLOWED_USERS`
 
 Allowlist format examples (comma-separated, no brackets, no quotes):
 
@@ -80,9 +81,7 @@ Allowlist format examples (comma-separated, no brackets, no quotes):
 Use plain comma-separated values like `123,456,789`.
 Do not use JSON or quoted arrays like `[123,456]` or `"123","456"`.
 
-Optional global controls:
-
-- `GATEWAY_ALLOW_ALL_USERS=true` (not recommended)
+Open-access flags (`GATEWAY_ALLOW_ALL_USERS`, `TELEGRAM_ALLOW_ALL_USERS`, `DISCORD_ALLOW_ALL_USERS`, `SLACK_ALLOW_ALL_USERS`) are rejected by this hardened template unless an allowlist is also set.
 
 Provider selection tip:
 
@@ -136,10 +135,17 @@ hermes pairing list
 
 ## Runtime behavior
 
-Entrypoint (`scripts/entrypoint.sh`) does the following:
+The container starts as root only long enough to fix ownership of the `/data` volume, then drops to the unprivileged `hermes` user (UID 10001).
 
-- Validates required provider and platform variables
-- Writes runtime env to `${HERMES_HOME}/.env`
+`scripts/entrypoint_check.sh` runs first and:
+
+- Fixes ownership of any `/data` entries not owned by `hermes` (only those, so boots stay fast on large volumes)
+- Validates provider, platform and allowlist variables, and that `HERMES_HOME` and the workspace are writable
+- Requires `GOOGLE_*` and `SUPABASE_*` variables to be set as complete groups when used
+
+`scripts/entrypoint.sh` then:
+
+- Writes runtime env to `${HERMES_HOME}/.env` (mode `600`, since it holds API keys and tokens)
 - Creates `${HERMES_HOME}/config.yaml` if missing
 - Migrates deprecated `MESSAGING_CWD` from `${HERMES_HOME}/.env` into `config.yaml` and removes it from persisted env
 - Persists one-time marker `${HERMES_HOME}/.initialized`
@@ -153,7 +159,7 @@ Entrypoint (`scripts/entrypoint.sh`) does the following:
 
 ## Build pinning
 
-This template requires `HERMES_GIT_REF` to be set explicitly.
+If `HERMES_GIT_REF` is empty, the build falls back to upstream `main`, which means every redeploy can pull in new, untested Hermes changes. Pinning is strongly recommended.
 
 Railway service variables are available at build time, and the Dockerfile reads:
 
@@ -178,3 +184,14 @@ docker run --rm \
   -v "$(pwd)/.tmpdata:/data" \
   hermes-railway-template
 ```
+
+## Development
+
+Entrypoint logic is covered by a Docker-free test suite that runs `scripts/entrypoint.sh` against a temporary `HERMES_HOME` with a stubbed `hermes` binary:
+
+```bash
+bash tests/entrypoint_test.sh
+shellcheck scripts/*.sh tests/*.sh
+```
+
+CI (`.github/workflows/ci.yml`) runs both, plus a Docker build, on every push to `main` and on pull requests.

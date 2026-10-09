@@ -74,7 +74,8 @@ require_writable_dir() {
 
 if [[ "$(id -u)" -eq 0 && "${HERMES_ALREADY_DROPPED:-}" != "1" ]]; then
   mkdir -p "${HERMES_HOME:-/data/.hermes}" "${MESSAGING_CWD:-/data/workspace}"
-  chown -R hermes:hermes /data
+  # Only touch entries with the wrong owner so boots stay fast on large volumes.
+  find /data \( \! -user hermes -o \! -group hermes \) -exec chown -h hermes:hermes {} +
   export HERMES_ALREADY_DROPPED=1
   exec gosu hermes "$0"
 fi

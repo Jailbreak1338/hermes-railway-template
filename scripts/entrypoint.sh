@@ -163,6 +163,8 @@ validate_platforms
 migrate_legacy_messaging_cwd
 
 echo "[bootstrap] Writing runtime env to ${ENV_FILE}"
+# The env file holds API keys and bot tokens; keep it private to the hermes user.
+umask 077
 {
   echo "# Managed by entrypoint.sh"
   echo "HERMES_HOME=${HERMES_HOME}"
@@ -182,6 +184,8 @@ for key in \
 do
   append_if_set "$key"
 done
+chmod 600 "$ENV_FILE"
+umask 022
 
 if [[ ! -f "$INIT_MARKER" ]]; then
   date -u +"%Y-%m-%dT%H:%M:%SZ" > "$INIT_MARKER"
