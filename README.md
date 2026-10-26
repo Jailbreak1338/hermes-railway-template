@@ -92,6 +92,16 @@ Provider selection tip:
 
 For the full and up-to-date list, check out the [Hermes repository](https://github.com/NousResearch/hermes-agent).
 
+## Agent Reach
+
+The image ships [Agent Reach](https://github.com/Panniantong/Agent-Reach) (pinned via the `AGENT_REACH_VERSION` build arg, default `v1.6.0`), which gives Hermes read/search access to the web, GitHub, YouTube, Reddit, X, Bilibili and more.
+
+- On boot, the entrypoint runs `agent-reach setup` once per Agent Reach version. It turns on the default channels and links the skill into `${HERMES_HOME}/skills/agent-reach`. State lives on the volume in `/data/.agent-reach`, and the log is at `${HERMES_HOME}/logs/agent-reach-setup.log`.
+- If setup fails, the gateway still starts. Set `AGENT_REACH_ENABLED=false` to skip setup entirely.
+- `GITHUB_TOKEN` (higher GitHub rate limits) and `GROQ_API_KEY` (podcast transcription) are read from the environment.
+- To add channels, connect over Railway SSH and run `agent-reach add <channel>` (for example `reddit` or `twitter`), or ask Hermes to do it. `agent-reach doctor --text` shows channel status.
+- To update Agent Reach, change `AGENT_REACH_VERSION` and redeploy. Don't run `agent-reach update` in the container, for the same reason as `hermes update`.
+
 ## Simple usage guide
 
 After deploy:

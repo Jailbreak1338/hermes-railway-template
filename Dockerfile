@@ -46,10 +46,20 @@ RUN apt-get update \
 RUN npm install -g playwright \
   && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 playwright install chromium
 
+# Agent Reach (https://github.com/Panniantong/Agent-Reach): internet access skill for Hermes.
+# Never install it from PyPI; the `agent-reach` package there is a different project.
+ARG AGENT_REACH_VERSION=v1.6.0
+RUN pip install --no-cache-dir uv==0.11.32 \
+  && UV_TOOL_DIR=/opt/uv-tools UV_TOOL_BIN_DIR=/usr/local/bin \
+    uv tool install --python /usr/local/bin/python3 \
+    "https://github.com/Panniantong/Agent-Reach/releases/download/${AGENT_REACH_VERSION}/agent-reach.zip" \
+  && agent-reach version
+
 ENV PATH="/opt/venv/bin:${PATH}" \
   PYTHONUNBUFFERED=1 \
   HERMES_HOME=/data/.hermes \
-  HOME=/data
+  HOME=/data \
+  AGENT_REACH_LANG=en
 
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /opt/hermes-agent /opt/hermes-agent

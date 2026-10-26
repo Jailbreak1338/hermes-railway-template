@@ -183,6 +183,42 @@ do
   append_if_set "$key"
 done
 
+setup_agent_reach() {
+  local version marker log_file
+
+  if ! is_true "${AGENT_REACH_ENABLED:-true}"; then
+    return 0
+  fi
+
+  if ! command -v agent-reach >/dev/null 2>&1; then
+    echo "[bootstrap] WARNING: agent-reach not found in image; skipping Agent Reach setup." >&2
+    return 0
+  fi
+
+  version="$(agent-reach version 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"]["version"])' 2>/dev/null || true)"
+  marker="${HOME}/.agent-reach/.railway-setup-version"
+  log_file="${HERMES_HOME}/logs/agent-reach-setup.log"
+
+  # setup links the skill into ~/.hermes/skills; skip only when it already ran for this version.
+  if [[ -n "$version" && -f "$marker" && "$(cat "$marker")" == "$version" && -e "${HERMES_HOME}/skills/agent-reach" ]]; then
+    echo "[bootstrap] Agent Reach ${version} already set up."
+    return 0
+  fi
+
+  echo "[bootstrap] Setting up Agent Reach ${version}..."
+  if agent-reach setup > "$log_file" 2>&1; then
+    if [[ "${HERMES_HOME}" != "${HOME}/.hermes" ]]; then
+      agent-reach skill link "${HERMES_HOME}/skills" >> "$log_file" 2>&1 || true
+    fi
+    printf '%s\n' "$version" > "$marker"
+    echo "[bootstrap] Agent Reach setup completed."
+  else
+    echo "[bootstrap] WARNING: Agent Reach setup failed; see ${log_file}. Continuing without it." >&2
+  fi
+}
+
+setup_agent_reach
+
 if [[ ! -f "$INIT_MARKER" ]]; then
   date -u +"%Y-%m-%dT%H:%M:%SZ" > "$INIT_MARKER"
   echo "[bootstrap] First-time initialization completed."
